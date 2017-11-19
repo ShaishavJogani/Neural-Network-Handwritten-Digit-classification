@@ -21,6 +21,7 @@ h2=None
 d1=None
 d2=None
 d3=None
+dropout_percent = 0.8
 # print weights1
 
 def oneHot(label):
@@ -64,13 +65,16 @@ def predictedOutput(input):
     z1 = np.dot(weights1.T, input) + bias1
     global h1
     h1 = 1/(1 + np.exp(-z1))    #sigmoid
-
+    h1 *= np.random.binomial(1, dropout_percent, size=h1.shape) / dropout_percent
+    # h1 *= np.random.binomial([np.ones((len(X),hidden_dim))],1-dropout_percent)[0] * (1.0/(1-dropout_percent))
     z2 = np.dot(weights2.T, h1) + bias2
     global h2
     h2 = 1/(1 + np.exp(-z2))   #sigmoid
+    h2 *= np.random.binomial(1, dropout_percent, size=h2.shape) / dropout_percent
 
     z3 = np.dot(weights3.T, h2) + bias3
     output = np.exp(z3) / np.sum(np.exp(z3))
+    # output *= np.random.binomial(1, dropout_percent, size=output.shape) / dropout_percent
     return output
     # print output
 
@@ -185,7 +189,7 @@ etadecay = 0.005
 # Set it to true to train or false to test
 if True:
     # Uncomment the following line to load from previously trained weights
-    #load()
+    # load()
     total = 0
     correct = 0
     # accuracy before training
@@ -218,6 +222,3 @@ else:
         total += 1
     accuracy = (float(correct) / total) * 100
     print 'accuracy of test: ', accuracy
-
-
-
