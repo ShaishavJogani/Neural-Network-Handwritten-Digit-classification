@@ -21,7 +21,7 @@ h2=None
 d1=None
 d2=None
 d3=None
-dropout_percent = 0.8
+dropout_percent = 0.5
 # print weights1
 
 def oneHot(label):
@@ -61,16 +61,21 @@ def getTestData(value = 5000):
 
 # print (getValidationData(1)[0][1])
 
-def predictedOutput(input):
+def predictedOutput(input, doDropout = False):
     z1 = np.dot(weights1.T, input) + bias1
     global h1
     h1 = 1/(1 + np.exp(-z1))    #sigmoid
-    h1 *= np.random.binomial(1, dropout_percent, size=h1.shape) / dropout_percent
+    if(doDropout):
+        h1 *= np.random.binomial(1, dropout_percent, size=h1.shape)
+        # print np.random.binomial(1, dropout_percent, size=h1.shape)
+    # else:
+        # h1 *=dropout_percent
     # h1 *= np.random.binomial([np.ones((len(X),hidden_dim))],1-dropout_percent)[0] * (1.0/(1-dropout_percent))
     z2 = np.dot(weights2.T, h1) + bias2
     global h2
     h2 = 1/(1 + np.exp(-z2))   #sigmoid
-    h2 *= np.random.binomial(1, dropout_percent, size=h2.shape) / dropout_percent
+    if(doDropout):
+        h2 *= np.random.binomial(1, dropout_percent, size=h2.shape) / dropout_percent
 
     z3 = np.dot(weights3.T, h2) + bias3
     output = np.exp(z3) / np.sum(np.exp(z3))
@@ -102,7 +107,7 @@ def train (trainData):
         i += 1
         label = data[1]
         image = data[0]
-        output = predictedOutput(image)
+        output = predictedOutput(image, True)
         d1 = output - label
         dW3 = np.dot(h2.reshape((256,1)),d1.reshape((1,10)))
         dB3 = d1
