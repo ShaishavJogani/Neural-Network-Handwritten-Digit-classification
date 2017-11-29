@@ -245,5 +245,11 @@ else:
         conf[realMax][predictMax] += 1
     accuracy = (float(correct) / total) * 100
     print 'accuracy of test: ', accuracy
-    print 'The confusion matrix is as follows:'
+    row_sums = conf.sum(axis=1)
+    new_matrix = conf.astype(float) / row_sums[:, np.newaxis]
+    new_matrix = new_matrix *100
+    new_matrix = new_matrix.round(2)
+    print 'The  confusion matrix is as follows:'
     print conf
+    print 'The normalized confusion matrix is as follows:'
+    print new_matrix
