@@ -207,7 +207,7 @@ etadecay = 0.005
 
 
 # Set it to true to train or false to test
-if True:
+if False:
     # Uncomment the following line to load from previously trained weights
     #load()
     total = 0
@@ -234,6 +234,7 @@ else:
     load()
     total = 0
     correct = 0
+    conf = np.zeros((10,10), dtype=np.int)
     for testdata in testSet:
         out = predictedOutput(testdata[0])
         predictMax = np.argmax(out)
@@ -241,5 +242,8 @@ else:
         if predictMax == realMax:
             correct += 1
         total += 1
+        conf[realMax][predictMax] += 1
     accuracy = (float(correct) / total) * 100
     print 'accuracy of test: ', accuracy
+    print 'The confusion matrix is as follows:'
+    print conf
