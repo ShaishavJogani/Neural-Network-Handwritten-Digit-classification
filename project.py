@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 
 
 class NeuralNet:
-    def __init__(self, seed, dropout_percent, training_size, validation_size, testing_size, epoch, training, validation, testing):
+    def __init__(self, seed, dropout_percent, training_size, validation_size, testing_size, iterations, training, testing, data_set, load_prev):
         np.random.seed(seed)
         mndata = MNIST('data')
         self.images, self.labels = mndata.load_training()
         self.index = random.randrange(0, len(self.images))
 
         self.doTraining = training
-        self.doValidation = validation
         self.doTesting = testing
+        self.data_set = data_set
+        self.load_prev = load_prev
 
         self.weights1 = 2*np.random.random((784, 256)) -1
         self.bias1 = 2*np.random.random(256) - 1
@@ -46,7 +47,7 @@ class NeuralNet:
 
         self.lossList = []
         self.epochList = []
-        self.epochs = epoch
+        self.iterations = iterations
         self.lossSum = 0
         self.eta = 0.1
         self.etadecay = 0.005
@@ -109,23 +110,7 @@ class NeuralNet:
 
         z3 = np.dot(self.weights3.T, self.h2) + self.bias3
         output = np.exp(z3) / np.sum(np.exp(z3))
-        # output *= np.random.binomial(1, dropout_percent, size=output.shape) / dropout_percent
         return output
-        # print output
-
-        # weight = weights1.T
-        # lists = []
-        # for row in weight[:1]:
-        #     print len(row)
-        #     sum = 0
-        #     for i in range(len(row)):
-        #         sum += row[i]*input[i]
-        #     # print input
-        #     h = np.dot(row,input)
-        #     print h
-        #     print sum
-        #     lists.append(h)
-        # # print (lists[0])
 
     def getLoss(self, output, label):
         loss = -np.sum(label * np.log(output))
@@ -134,9 +119,10 @@ class NeuralNet:
     def train (self, trainData, iteration):
         # global i,weights1,weights2,weights3,eta,bias1,bias2,bias3,etadecay,dr1,dr2,lossSum
         # i=0
-
+        if iteration == 0 and self.dropout_percent == 1:self.gradientCheck()
         for data in trainData:
             self.i += 1
+
             label = data[1]
             image = data[0]
             output = self.predictedOutput(image, True)
@@ -159,14 +145,7 @@ class NeuralNet:
 
             dW1 = np.dot(x.reshape((784,1)), d3)
             dB1 = d3.reshape(256)
-            #print dB1
-            # lossSum = lossSum + getLoss(output, label)
-            # if i%1000 == 0:
-            #     lossList.append(lossSum/1000)
-            #     epochList.append( i )
-            #     lossSum = 0
             if self.i%5000 ==0:print ('Training sample %s , eta: %s and Loss : %s' %(self.i, self.eta, self.getLoss(output, label)))
-            #print bias2
             if self.i%5000 == 0:
                 if self.eta <= 0.005: self.etadecay = 0.0001
                 self.eta -= self.etadecay
@@ -179,10 +158,8 @@ class NeuralNet:
             self.bias2 -= self.eta * dB2
             self.bias1 -= self.eta * dB1
 
-            #print bias2
         total=0
         correct=0
-        # global validData
         for testdata in self.validData:
 
             out = self.predictedOutput(testdata[0])
@@ -233,10 +210,8 @@ class NeuralNet:
         self.testSet = self.getTestData()
 
     def run(self):
-        # Set it to true to train or false to test
         if self.doTraining:
-            # Uncomment the following line to load from previously trained weights
-            self.load()
+            if self.load_prev: self.load()
             total = 0
             correct = 0
             # accuracy before training
@@ -250,7 +225,7 @@ class NeuralNet:
             accuracy = (float(correct) / total) * 100
             print 'accuracy before training: ', accuracy
 
-            for j in range(self.epochs):
+            for j in range(self.iterations):
                 np.random.shuffle(self.trainData)
                 self.train(self.trainData, j)
                 self.save()
@@ -263,10 +238,15 @@ class NeuralNet:
             self.save()
         else:
             self.load()
+            testOnData = self.testSet
+            if self.data_set == 'trainSet':
+                testOnData = self.trainData
+            elif self.data_set == 'validationSet':
+                testOnData = self.validData
             total = 0
             correct = 0
             conf = np.zeros((10, 10), dtype=np.int)
-            for testdata in self.testSet:
+            for testdata in testOnData:
                 out = self.predictedOutput(testdata[0])
                 predictMax = np.argmax(out)
                 realMax = np.argmax(testdata[1])
@@ -279,11 +259,36 @@ class NeuralNet:
             row_sums = conf.sum(axis=1)
             new_matrix = conf.astype(float) / row_sums[:, np.newaxis]
             new_matrix = new_matrix * 100
-            new_matrix = new_matrix.round(2)
+            new_matrix = new_matrix.round(1)
             print 'The  confusion matrix is as follows:'
             print conf
             print 'The normalized confusion matrix is as follows:'
             print new_matrix
+
+    def gradientCheck(self):
+        data = self.validData[0]
+        label = data[1]
+        image = data[0]
+        output = self.predictedOutput(image, True)
+        d1 = output - label
+        dW3 = np.dot(self.h2.reshape((256, 1)), d1.reshape((1, 10)))
+
+        analyticalGradient = dW3[0][0]
+        epsilon = 0.0001
+        changeVector = np.zeros((256,10))
+        changeVector[0][0] = 1
+        self.weights3 += epsilon*changeVector
+        output = self.predictedOutput(image, True)
+        loss11 = self.getLoss(output, label)
+        self.weights3 -= 2*epsilon * changeVector
+        output = self.predictedOutput(image, True)
+        loss12 = self.getLoss(output, label)
+        numericalGrad = (loss11 - loss12)/(2*epsilon)
+        print 'Analytical Gradient is : %s' %(analyticalGradient)
+        print 'Numerical Gradient is : %s' %(numericalGrad)
+        self.weights3 += epsilon * changeVector
+
+
 
 def readCommand ( argv ):
     from optparse import OptionParser
@@ -300,21 +305,24 @@ def readCommand ( argv ):
     parser.add_option('-s', '--seed', dest='seed', type='int',
                         help="Random seed for numpy", default=1)
     parser.add_option('-d', '--dropout_percent', dest='dropout_percent', type='float',
-                        help="Dropout Percent. Between 0.0 to 1.0", default=0.8)
+                        help="Dropout Percent. Between 0.0 to 1.0", default=1)
     parser.add_option('-k', '--training_size', dest='training_size', type='int',
                         help="Training Data Size", default=10000)
     parser.add_option('-l', '--validation_size', dest='validation_size', type='int',
                         help="Validation Data Size", default=5000)
     parser.add_option('-m', '--testing_size', dest='testing_size', type='int',
                         help="Testing Data Size", default=5000)
-    parser.add_option('-e', '--epoch', dest='epoch', type='int',
-                        help="Total Number of iteration.", default=1)
+    parser.add_option('-i', '--iterations', dest='iterations', type='int',
+                        help="Total Number of iteration.", default=5)
     parser.add_option('--training', dest='training', action='store_true',
-                        help="Test the accuracy on training samples.", default=False)
-    parser.add_option('--validation', dest='validation', action='store_true',
-                        help="Test the accuracy on validate samples.", default=False)
+                        help="Train the network.", default=False)
     parser.add_option('--testing', dest='testing', action='store_true',
-                        help="Test the accuracy on testing samples.", default=True)
+                        help="Test the accuracy of the trained neural network.", default=True)
+    parser.add_option('-t', '--data_set', dest='data_set', type='string',
+                        help="The dataset to test the network on. Can be trainSet, validationSet, testSet", default='testSet')
+    parser.add_option('--load_prev', dest='load_prev', action='store_true',
+                        help="Train after loading from previously trained weights.", default=False)
+
 
     (options, junkArgs) = parser.parse_args(argv)
 
@@ -336,13 +344,15 @@ def readCommand ( argv ):
 
     args['seed'] = options.seed
     args['dropout_percent'] = options.dropout_percent
-    args['epoch'] = options.epoch
+    args['iterations'] = options.iterations
     args['training_size'] = options.training_size
     args['validation_size'] = options.validation_size
     args['testing_size'] = options.testing_size
     args['training'] = options.training
-    args['validation'] = options.validation
     args['testing'] = options.testing
+    args['data_set'] = options.data_set
+    args['load_prev'] = options.load_prev
+
 
     return args
 
