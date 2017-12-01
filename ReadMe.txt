@@ -6,10 +6,10 @@ Python 2.7
 Ubuntu 14.04
 
 
-
 ***External Libraries***
 1) Numpy
 2) mnist
+
 
 ***Running***
 
@@ -33,6 +33,7 @@ Help. Please use the following command to see full set of operations.:
 --> python neuralnet.py --help
 
 
+
 ***Installation***
 Run the following command:
 
@@ -45,6 +46,7 @@ For Numpy:-
 
 For mnist
 --> https://github.com/sorki/python-mnist#installation
+
 
 
 ***DataSet***
