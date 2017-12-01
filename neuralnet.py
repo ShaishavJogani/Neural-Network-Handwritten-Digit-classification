@@ -196,15 +196,19 @@ class NeuralNet:
 
     def load(self):
         # global weights1, weights2, weights3, eta, bias1, bias2, bias3,etadecay
-        npz_members = np.load(os.path.join(os.curdir, 'models', 'model1.npz'))
-        self.weights1 = np.asarray(npz_members['weights1'])
-        self.weights2 = np.asarray(npz_members['weights2'])
-        self.weights3 = np.asarray(npz_members['weights3'])
-        self.bias1 = np.asarray(npz_members['bias1'])
-        self.bias2 = np.asarray(npz_members['bias2'])
-        self.bias3 = np.asarray(npz_members['bias3'])
-        self.eta = float(npz_members['eta'])
-        self.etadecay = float(npz_members['etadecay'])
+        try:
+            npz_members = np.load(os.path.join(os.curdir, 'models', 'model1.npz'))
+            self.weights1 = np.asarray(npz_members['weights1'])
+            self.weights2 = np.asarray(npz_members['weights2'])
+            self.weights3 = np.asarray(npz_members['weights3'])
+            self.bias1 = np.asarray(npz_members['bias1'])
+            self.bias2 = np.asarray(npz_members['bias2'])
+            self.bias3 = np.asarray(npz_members['bias3'])
+            self.eta = float(npz_members['eta'])
+            self.etadecay = float(npz_members['etadecay'])
+        except:
+            print "No models found. Please Train the network first."
+            exit()
 
     def loadData(self):
         self.trainData = self.getTrainingData()
@@ -225,7 +229,7 @@ class NeuralNet:
                     correct += 1
                 total += 1
             accuracy = (float(correct) / total) * 100
-            print 'accuracy before training: ', accuracy
+            print 'Accuracy before training: ', accuracy
             self.accuracyList.append(accuracy)
             self.epochList.append(0)
 
@@ -268,7 +272,7 @@ class NeuralNet:
                 total += 1
                 conf[realMax][predictMax] += 1
             accuracy = (float(correct) / total) * 100
-            print 'accuracy of test: ', accuracy
+            print 'Accuracy of test: ', accuracy
             row_sums = conf.sum(axis=1)
             new_matrix = conf.astype(float) / row_sums[:, np.newaxis]
             new_matrix = new_matrix * 100
@@ -301,14 +305,11 @@ class NeuralNet:
         print 'Numerical Gradient is : %s' %(numericalGrad)
         self.weights3 += epsilon * changeVector
 
-
-
 def readCommand ( argv ):
     from optparse import OptionParser
     usageStr = """
         USAGE: python neuralNet.py <options>
         Eamples:    (1) python neuralNet.py
-                        - Test the neural network
                     (2) python neuralNet.py --training
                     (3) python neuralNet.py --help
     """
