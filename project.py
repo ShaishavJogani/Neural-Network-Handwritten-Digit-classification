@@ -38,7 +38,7 @@ class NeuralNet:
         self.totalSize = self.trainSize + self.validSize + self.testSize
         self.allrandom = np.random.choice(len(self.images), self.totalSize, False)
 
-        self.dropout_percent = dropout_percent
+        self.retain_percent = 1.0 - dropout_percent
 
         self.trainData = None
         self.validData = None
@@ -47,6 +47,7 @@ class NeuralNet:
 
         self.lossList = []
         self.epochList = []
+        self.accuracyList = []
         self.iterations = iterations
         self.lossSum = 0
         self.eta = 0.1
@@ -95,18 +96,18 @@ class NeuralNet:
         # global h1,h2,dr1,dr2
         self.h1 = 1/(1 + np.exp(-z1))    #sigmoid
         if(doDropout):
-            self.dr1 = np.random.binomial(1, self.dropout_percent, size=self.h1.shape)
+            self.dr1 = np.random.binomial(1, self.retain_percent, size=self.h1.shape)
             self.h1 = np.multiply(self.h1, self.dr1)
         else:
-            self.h1 *= self.dropout_percent
+            self.h1 *= self.retain_percent
 
         z2 = np.dot(self.weights2.T, self.h1) + self.bias2
         self.h2 = 1/(1 + np.exp(-z2))   #sigmoid
         if(doDropout):
-            self.dr2 = np.random.binomial(1, self.dropout_percent, size=self.h2.shape)
+            self.dr2 = np.random.binomial(1, self.retain_percent, size=self.h2.shape)
             self.h2 = np.multiply(self.h2, self.dr2)
         else:
-            self.h2 *= self.dropout_percent
+            self.h2 *= self.retain_percent
 
         z3 = np.dot(self.weights3.T, self.h2) + self.bias3
         output = np.exp(z3) / np.sum(np.exp(z3))
@@ -119,7 +120,7 @@ class NeuralNet:
     def train (self, trainData, iteration):
         # global i,weights1,weights2,weights3,eta,bias1,bias2,bias3,etadecay,dr1,dr2,lossSum
         # i=0
-        if iteration == 0 and self.dropout_percent == 1:self.gradientCheck()
+        if iteration == 0 and self.retain_percent == 1:self.gradientCheck()
         for data in trainData:
             self.i += 1
 
@@ -177,6 +178,7 @@ class NeuralNet:
 
 
         accuracy = (float(correct) / total) * 100
+        self.accuracyList.append(accuracy)
         print 'accuracy: ', accuracy
 
     def save(self, filename='model1.npz'):
@@ -224,15 +226,26 @@ class NeuralNet:
                 total += 1
             accuracy = (float(correct) / total) * 100
             print 'accuracy before training: ', accuracy
+            self.accuracyList.append(accuracy)
+            self.epochList.append(0)
 
             for j in range(self.iterations):
                 np.random.shuffle(self.trainData)
                 self.train(self.trainData, j)
                 self.save()
 
-            plt.plot(self.epochList, self.lossList, 'k', self.epochList, self.lossList, 'ro')
-            plt.xlabel('Training samples')
+            plt.figure(1)
+            plt.plot(self.epochList[1:], self.lossList, 'k', self.epochList[1:], self.lossList, 'ro')
+            plt.title("Loss vs Iterations")
+            plt.xlabel('No. of Iterations')
             plt.ylabel('Loss')
+            # for i in range(len(self.epochList)):
+                # plt.text(self.epochList[i], self.lossList[i], "%.4f" % self.lossList[i], fontsize=8)
+            plt.figure(2)
+            plt.plot(self.epochList, self.accuracyList, 'k', self.epochList, self.accuracyList, 'ro')
+            plt.title("Accuracy (%) vs Iterations")
+            plt.xlabel('No. of Iterations')
+            plt.ylabel('Accuracy')
             plt.show()
             # Saving the trained weights and bias to models folder. Need to create it
             self.save()
@@ -305,7 +318,7 @@ def readCommand ( argv ):
     parser.add_option('-s', '--seed', dest='seed', type='int',
                         help="Random seed for numpy", default=1)
     parser.add_option('-d', '--dropout_percent', dest='dropout_percent', type='float',
-                        help="Dropout Percent. Between 0.0 to 1.0", default=1)
+                        help="Dropout Percent. Between 0.0 to 1.0", default=0)
     parser.add_option('-k', '--training_size', dest='training_size', type='int',
                         help="Training Data Size", default=10000)
     parser.add_option('-l', '--validation_size', dest='validation_size', type='int',
@@ -328,13 +341,13 @@ def readCommand ( argv ):
 
     if len(junkArgs) != 0:
         raise Exception('Command line input is invalid: ' + str(junkArgs))
-    if options.dropout_percent <= 0 or options.dropout_percent > 1:
-        raise Exception('Drop Percentage must be between (0, 1].')
+    if options.dropout_percent < 0 or options.dropout_percent >= 1:
+        raise Exception('Drop Percentage must be between [0, 1).')
     if options.training_size <= 0 or options.training_size > 50000:
         raise Exception('Training data size must be between (0, 50000].')
     if options.validation_size <= 0 or options.validation_size > 10000:
         raise Exception('Validation data size must be between (0, 10000].')
-    if options.testing_size <= 0 or options.testing_size > 10000:
+    if options.testing_size <= 0 or options.testing_size > 40000:
         raise Exception('Testing data size must be between (0, 10000].')
     if (options.training_size + options.validation_size + options.testing_size) > 60000:
         raise Exception('Sum of training, validation, and testing data size must be <= 60000')
