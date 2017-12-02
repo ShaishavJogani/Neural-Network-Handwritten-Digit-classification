@@ -353,7 +353,7 @@ def readCommand ( argv ):
     parser.add_option('-m', '--testing_size', dest='testing_size', type='int',
                         help="Testing Data Size", default=5000)
     parser.add_option('-i', '--iterations', dest='iterations', type='int',
-                        help="Total Number of iteration.", default=5)
+                        help="Total Number of iteration.", default=10)
     parser.add_option('--training', dest='training', action='store_true',
                         help="Train the network.", default=False)
     parser.add_option('--testing', dest='testing', action='store_true',
@@ -378,7 +378,6 @@ def readCommand ( argv ):
         raise Exception('Testing data size must be between (0, 10000].')
     if (options.training_size + options.validation_size + options.testing_size) > 60000:
         raise Exception('Sum of training, validation, and testing data size must be <= 60000')
-    #ToDo: check only one out of training, validate, testing
 
     args = dict()
 

@@ -39,7 +39,7 @@ File names must be following for the images and lables file respectively.
 Testing:
 --> python neuralnet.py
 
-Training:
+Training (Approximate 5-7 minutes):
 --> python neuralnet.py --training
 
 Testing with dropout rate (e.g. dropout rate=0.2):
